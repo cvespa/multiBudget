@@ -1,250 +1,307 @@
 var multiBudgetApp = angular.module('multiBudget', []);
 
 var bankAccounts = [];
-var payRollEnvelopes = [];
-var envelopes = [];
-var transactions = [];
 var activeContainer = "";
-var payRollContainer = "";
-var selectedBankAccountId = "";
+var selectedAccountId = "";
 var selectedEnvelopeId = "";
+var transactionType = "";
 var regexPattern = /,"\$\$\w+":"\w+"/g;
 
 multiBudgetApp.controller('budget', ['$scope',
     function ($scope) {
-
-        if(typeof(Storage) !== "undefined") {
-            // Code for localStorage/sessionStorage.
-            console.log("localStorage: " + window.localStorage.getItem('bankAccounts'));
-            var localBanks = window.localStorage.getItem('bankAccounts');
-            console.log("localBanks: " + localBanks);
-            if(localBanks !== null){
-                localBanks = localBanks.replace(regexPattern, "");
-                bankAccounts = JSON.parse(localBanks);
-            }else{
-                bankAccounts = [];
-            }
-            console.log("bankAccounts:");
-            console.log(bankAccounts);
-            $scope.bankAccounts = bankAccounts;
-        } else {
-            // Sorry! No Web Storage support..
-            $('#storageAlert').removeClass('hide');
-        }
-
+        $scope.showAccounts = 5;
+        $scope.showEnvelopes = 3;
+        
+        $scope.activeContainer = function(){
+            //console.log("activeContainer: " + activeContainer);
+            return activeContainer;
+        };
+        
         $scope.back = function() {
-            if(activeContainer === "envelopes"){
+            if(activeContainer === "account"){
                 activeContainer = "";
-                $scope.selectedText = "";
-                $scope.selectedTotal = "";
-                $('#back').addClass('hide');
+                $scope.selectedAccountText = ""
                 return activeContainer;
             }
-            if(activeContainer === "transactions"){
-                activeContainer = "envelopes";
-                $scope.selectedText = bankAccounts[selectedBankAccountId].name;
-                $scope.selectedTotal = $scope.selectedTotal = "$" + this.totalBank(selectedBankAccountId);
-                $('#back').addClass('hide');
+            if(activeContainer === "envelope"){
+                console.log($scope.selectedAccountText)
+                if($scope.selectedAccountText == "" | $scope.selectedAccountText == undefined){
+                    activeContainer = "";
+                }else{
+                    activeContainer = "account";
+                }
                 return activeContainer;
             }
         };
-
-        $scope.spend = function(disc, amount, date) {
-            //console.log("click: spend button | " + disc + " " + amount + " " + date);
-            if(activeContainer == "transactions"){
-                transactions[transactions.length] = {'disc': disc, 'id': transactions.length, 'amount': amount, 'type': 'spend', 'date': date, 'display': 'show'};
-                var dataToStore = this.toStorage(transactions);
-                this.setLocalStorage('bankAccounts.'+ selectedBankAccountId + "." + selectedEnvelopeId, dataToStore);
-                //console.log("transactions:");
-                //console.log(transactions);
-                $scope.spend.text = "";
-                $scope.spend.amount = "";
-            }
+        
+        $scope.selectBankAccount = function(accountId){
+            //console.log("<----  selectBankAccount  ---->");
+            //console.log("accountId: " + accountId);
+            //console.log(bankAccounts[accountId]);
+            activeContainer = "account";
+            selectedAccountId = accountId;
+            $scope.selectedAccountText = bankAccounts[accountId].title;
+            $scope.selectedAccount = bankAccounts[accountId];
         };
-
-        $scope.earn = function(disc, amount, date) {
-            //console.log("click: earn button | " + disc + " " + amount + " " + date);
-            if(activeContainer == "transactions"){
-                transactions[transactions.length] = {'disc': disc, 'id': transactions.length, 'amount': amount, 'type': 'earn', 'date': date, 'display': 'show'};
-                var dataToStore = this.toStorage(transactions);
-                this.setLocalStorage('bankAccounts.'+ selectedBankAccountId + "." + selectedEnvelopeId, dataToStore);
-                //console.log("transactions:");
-                //console.log(transactions);
-                $scope.earn.text = "";
-                $scope.earn.amount = "";
-            }
+        
+        $scope.selectEnvelope = function(accountId, envelopeId){
+            //console.log("<----  selectEnvelope  ---->");
+            //console.log("accountId: " + accountId);
+            //console.log("envelopeId: " + envelopeId);
+            //console.log(bankAccounts[accountId].envelopes[envelopeId]);
+            activeContainer = "envelope";
+            selectedAccountId = accountId;
+            selectedEnvelopeId = envelopeId;
+            $scope.selectedEnvelopeText = bankAccounts[accountId].envelopes[envelopeId].title;
+            $scope.selectedEnvelope = bankAccounts[accountId].envelopes[envelopeId];
         };
-
-        $scope.add = function(name) {
+        
+        $scope.add = function(name, color) {
             //console.log("click: add button |" + name);
-            var dataToStore = "";
             if(activeContainer === ""){
-                bankAccounts[bankAccounts.length] = {'name': name , 'id': bankAccounts.length, 'display': 'show'};
-                dataToStore = this.toStorage(bankAccounts);
-                this.setLocalStorage('bankAccounts', dataToStore);
+                bankAccounts[bankAccounts.length] = {
+                    "id": bankAccounts.length,
+                    "title": name,
+                    "color": color,
+                    "envelopes": [],
+                    "display": "show",
+                    "date": this.date
+                    };
+            }
+            if(activeContainer == "account"){
+                bankAccounts[selectedAccountId].envelopes[bankAccounts[selectedAccountId].envelopes.length] = {
+                    "id": bankAccounts[selectedAccountId].envelopes.length,
+                    "title": name,
+                    "color": color,
+                    "transactions": [],
+                    "diaplay" : "show",
+                    "date": this.date
+                    };
+            }
+            var dataToStore = this.getString(bankAccounts);
+            this.setLocalStorage('bankAccounts', dataToStore);
+            //console.log("bankAccounts:");
+            //console.log(bankAccounts);
+            $scope.add.text = "";
+        };
+        
+        $scope.add.color = "default";
+        
+        $scope.remove = function(accountId, envelopeId) {
+            
+            var confirmText = "Are you sure you want to remove " + bankAccounts[accountId].title + " and all the inside Envelopes";
+            if (envelopeId != undefined){
+                confirmText = "Are you sure you want to remove " + bankAccounts[accountId].envelopes[envelopeId].title;
+            }
+            
+            var check = confirm(confirmText);
+            if(check == true){
+                if (envelopeId != undefined){
+                    console.log("true - envelope")
+                    bankAccounts[accountId].envelopes[envelopeId].display = "hide";
+                } else {
+                    console.log("true - account")
+                    bankAccounts[accountId].display = "hide";
+                }
                 //console.log("bankAccounts:");
                 //console.log(bankAccounts);
-                $scope.add.text = "";
-            }
-            if(activeContainer == "envelopes"){
-                envelopes[envelopes.length] = {'name': name , 'id': envelopes.length, 'display': 'show'};
-                dataToStore = this.toStorage(envelopes);
-                this.setLocalStorage('bankAccounts.'+ selectedBankAccountId , dataToStore);
-                //console.log("envelopes:");
-                //console.log(envelopes);
-                $scope.add.text = "";
-            }
-        };
-
-        $scope.remove = function(id) {
-            if(activeContainer === ""){
-                bankAccounts[id].display = 'hide';
-                var dataToStore = this.toStorage(bankAccounts);
+                var dataToStore = this.getString(bankAccounts);
                 this.setLocalStorage('bankAccounts', dataToStore);
+            }
+            
+        };
+        
+        $scope.transaction = function(disc, amount, type, date) {
+            //console.log("click: transaction button | " + disc + " " + amount + " " + date);
+            if(activeContainer == "envelope"){
+                bankAccounts[selectedAccountId].envelopes[selectedEnvelopeId].transactions[bankAccounts[selectedAccountId].envelopes[selectedEnvelopeId].transactions.length] = {
+                    "id": bankAccounts[selectedAccountId].envelopes[selectedEnvelopeId].transactions.length,
+                    "disc": disc,
+                    "amount": amount,
+                    "type": type,
+                    "date": this.date,
+                    "display": "show"
+                    };
                 //console.log("bankAccounts:");
                 //console.log(bankAccounts);
-            }
-            if(activeContainer == "envelopes"){
-                envelopes[id].display = 'hide';
-                dataToStore = this.toStorage(envelopes);
-                this.setLocalStorage('bankAccounts.'+ selectedBankAccountId , dataToStore);
-                //console.log("envelopes:");
-                //console.log(envelopes);
+                var dataToStore = this.getString(bankAccounts);
+                this.setLocalStorage('bankAccounts', dataToStore);
+                $scope.transaction.text = "";
+                $scope.transaction.amount = "";
             }
         };
-
-        $scope.selectBankAccount = function(id) {
-            activeContainer = "envelopes";
-            selectedBankAccountId = id;
-            $scope.selectedText = bankAccounts[id].name;
-            $scope.selectedTotal = "$" + this.totalBank(id);
-            var localEnvelopes = this.getLocalStorage('bankAccounts.' + id);
-            if(localEnvelopes !== null){
-                envelopes = this.fromStorage(localEnvelopes);
-            }else{
-                envelopes = [];
+        
+        $scope.transaction.spend = "Spend";
+        $scope.transaction.earn = "Earn";
+        $scope.transaction.transactionType = transactionType;
+        
+        $scope.payRoll = function(disc, total){
+            //console.log(disc);
+            //console.log(total);
+            if(bankAccounts.length = 0){
+                alert("You do not have any Accounts.");
+                $('#payroll').modal('toggle');
+                return;
             }
-            $scope.envelopes = envelopes;
-        };
-
-        $scope.selectEnvelope = function(id) {
-            //console.log(id);
-            //console.log(envelopes[id].name);
-            activeContainer = "transactions";
-            selectedEnvelopeId = id;
-            $scope.selectedText = envelopes[id].name;
-            $scope.selectedTotal = "$" + this.totalEnvelope(id);
-            var localTransactions = this.getLocalStorage('bankAccounts.' + selectedBankAccountId + '.' + id);
-            //console.log("localTransactions: " + localTransactions);
-            if(localTransactions !== null){
-                transactions = this.fromStorage(localTransactions);
-            }else{
-                transactions = [];
+            
+            var anyEnvelope = bankAccounts.length;
+            for(var x = 0; x < bankAccounts.length; x++){
+                if(bankAccounts[x].envelopes.length = 0){
+                    anyEnvelope = anyEnvelope - 1;
+                }
             }
-            //console.log("localTransactions:");
-            //console.log(transactions);
-            $scope.transactions = transactions;
-            //console.log(envelopes[id].name);
-        };
-
-
-        $scope.totalBank = function(id){
-            var bankTotalNumber = 0;
-            //console.log('totalBank: ' + id);
-            var bank = this.getLocalStorage('bankAccounts.' + id);
-            if (bank !== null) {
-                var bankTotal = this.fromStorage(bank);
-                //console.log(bankTotal);
-                for (var total = 0; total < bankTotal.length; total++){
-                    //console.log('for: ' + bankTotal[total].id);
-                    var coreBank = this.getLocalStorage('bankAccounts.' + id + '.' + total);
-                    if (coreBank !== null) {
-                        var coreBankTotal = this.fromStorage(coreBank);
-                        //console.log(coreBankTotal);
-                        for(var coreTotal = 0; coreTotal < coreBankTotal.length; coreTotal++) {
-                            //console.log(coreBankTotal[coreTotal]);
-                            if(coreBankTotal[coreTotal].type === 'spend'){
-                                bankTotalNumber = bankTotalNumber - coreBankTotal[coreTotal].amount;
-                                //console.log(bankTotalNumber);
-                                continue;
-                            }else if(coreBankTotal[coreTotal].type === 'earn'){
-                                bankTotalNumber = bankTotalNumber + coreBankTotal[coreTotal].amount;
-                                //console.log(bankTotalNumber);
-                                continue;
-                            }
+            if(anyEnvelope = 0){
+                alert("You do not have any Envelopes.");
+                $('#payroll').modal('toggle');
+                return;
+            }
+            
+            if(total != undefined){
+                if(this.payRollTotal.perc > 100){
+                    alert("You have allocated more money then you have.");
+                    return;
+                }
+                if(this.payRollTotal.perc != 100){
+                    alert("You have not allocated all your money.")
+                    return;
+                }
+                if(disc == undefined){
+                    disc = "Paycheck";
+                }
+                
+                for(var x = 0; x < bankAccounts.length; x++){
+                    for(var y = 0; y < bankAccounts[x].envelopes.length; y++){
+                        if(bankAccounts[x].envelopes[y].pendAmount != undefined){
+                            bankAccounts[x].envelopes[y].transactions[bankAccounts[x].envelopes[y].transactions.length] = {
+                                "id": bankAccounts[x].envelopes[y].transactions.length,
+                                "disc": disc,
+                                "amount": bankAccounts[x].envelopes[y].pendAmount,
+                                "type": "Earn",
+                                "date": this.date,
+                                "display": "show"
+                                };
+                            bankAccounts[x].envelopes[y].pendAmount = undefined;
                         }
                     }
                 }
+                var dataToStore = this.getString(bankAccounts);
+                this.setLocalStorage('bankAccounts', dataToStore);
+                $('#payroll').modal('toggle');
             }
-            $scope.total = bankTotalNumber;
-            return bankTotalNumber;
-        };
-
-        $scope.totalEnvelope = function(id){
-            var envelopeTotalNumber = 0;
-            //console.log('totalEnvelope: ' + id);
-            var envelope = this.getLocalStorage('bankAccounts.' + selectedBankAccountId + '.' + id);
-            if(envelope !== null) {
-                var envelopeTotal = this.fromStorage(envelope);
-                //console.log(envelopeTotal);
-                for(var total = 0; total < envelopeTotal.length; total++) {
-                    //console.log(envelopeTotal[total]);
-                    if(envelopeTotal[total].type === 'spend'){
-                        envelopeTotalNumber = envelopeTotalNumber - envelopeTotal[total].amount;
-                        //console.log(envelopeTotalNumber);
-                        continue;
-                    }else if(envelopeTotal[total].type === 'earn'){
-                        envelopeTotalNumber = envelopeTotalNumber + envelopeTotal[total].amount;
-                        //console.log(envelopeTotalNumber);
-                        continue;
+        }
+        
+        $scope.payRollTotal = function(total) {
+            if(total == undefined){
+                return;
+            }
+            var pendTotal = 0;
+            for(var x = 0; x < bankAccounts.length; x++){
+                for(var y = 0; y < bankAccounts[x].envelopes.length; y++){
+                    if(bankAccounts[x].envelopes[y].pendAmount != undefined){
+                        pendTotal = pendTotal + bankAccounts[x].envelopes[y].pendAmount;
                     }
                 }
             }
-            return envelopeTotalNumber;
-
-        };
-
-        $scope.payRollContainer = function(){
-            console.log("payRollContainer");
-            return payRollContainer;
-        };
-
-        $scope.payRollSelected = function(id){
-            console.log("payRollSelected: " + id);
-            if(id == undefined){
-                return;
+            var newTotal = (pendTotal/total) * 100;
+            $scope.payRollTotal.perc = newTotal;
+            if (newTotal > 80){
+                $scope.payRollTotal.color = "warning"
             }
-            var payRoll = this.getLocalStorage('bankAccounts.' + id);
-            if(payRoll !== null){
-                var payStorage = this.fromStorage(payRoll);
-                if(payRollEnvelopes === payStorage){
-                    $('#payRollSelect').addClass("hide");
-                    console.log(payRollEnvelopes);
-                    console.log(payStorage);
+            if (newTotal > 100){
+                $scope.payRollTotal.color = "danger"
+            }
+            
+        }
+        
+        $scope.payRollTotal.perc = 0;
+        $scope.payRollTotal.color = "default"
+        
+        $scope.panelColor = function(acId, envId){
+            var calcAmount = 0;
+            if(envId == undefined){
+                for(var x = 0; x < bankAccounts[acId].envelopes.length; x++){
+                    for(var y = 0; y < bankAccounts[acId].envelopes[x].transactions.length; y++){
+                        if(bankAccounts[acId].envelopes[x].transactions[y].type == "Spend"){
+                            calcAmount = calcAmount - bankAccounts[acId].envelopes[x].transactions[y].amount;
+                        }else{
+                            calcAmount = calcAmount + bankAccounts[acId].envelopes[x].transactions[y].amount;
+                        }
+                    }
                 }
-                if(payStorage.length > 0){
-                    $scope.payRollEnvelopes = payStorage;
-                    $("#payRollSelect").addClass("hide");
+            }else{
+                for(var x = 0; x < bankAccounts[acId].envelopes[envId].transactions.length; x++){
+                    if(bankAccounts[acId].envelopes[envId].transactions[x].type == "Spend"){
+                        calcAmount = calcAmount - bankAccounts[acId].envelopes[envId].transactions[x].amount;
+                    }else{
+                        calcAmount = calcAmount + bankAccounts[acId].envelopes[envId].transactions[x].amount;
+                    }
+                }
+            }
+            
+            if(calcAmount >= 0){
+                return "primary";
+            }else{
+                return "danger"
+            }
+        };
+        
+        $scope.listColor = function(acId, envId, transId){
+            if(transId != undefined){
+                if(bankAccounts[acId].envelopes[envId].transactions[transId].type == "Spend"){
+                    return "danger";
                 }else{
-                    $('#payRollPopulated').addClass("hide");
-                    $("#payRollEmpty").removeClass("hide");
+                    return "success";
                 }
             }
-            console.log(payRoll.amount)
+            
+            var calcAmount = 0;
+            
+            for(var x = 0; x < bankAccounts[acId].envelopes[envId].transactions.length; x++){
+                if(bankAccounts[acId].envelopes[envId].transactions[x].type == "Spend"){
+                    calcAmount = calcAmount - bankAccounts[acId].envelopes[envId].transactions[x].amount;
+                }else{
+                    calcAmount = calcAmount + bankAccounts[acId].envelopes[envId].transactions[x].amount;
+                }
+            }
+            
+            if(calcAmount > 0){
+                return "success";
+            } else if(calcAmount == 0){
+                return "warning"
+            } else{
+                return "danger"
+            }
         };
-
-        $scope.activeContainer = function(){
-            console.log("activeContainer: " + activeContainer);
-            //if(activeContainer === ""){
-                //return activeContainer;
-            //}
-            //if(activeContainer === "envelopes"){
-                //return activeContainer;
-            //}
-            //if(activeContainer === "transactions"){
-                //return activeContainer;
-            //}
-            return activeContainer;
+        
+        $scope.transactionType = function(type){
+            //console.log(type);
+            transactionType = type;
+            $scope.transaction.transactionType = transactionType;
+        };
+        
+        $scope.calcTotal = function(acId, envId){
+            var calcAmount = 0;
+            if(envId == undefined){
+                for(var x = 0; x < bankAccounts[acId].envelopes.length; x++){
+                    for(var y = 0; y < bankAccounts[acId].envelopes[x].transactions.length; y++){
+                        if(bankAccounts[acId].envelopes[x].transactions[y].type == "Spend"){
+                            calcAmount = calcAmount - bankAccounts[acId].envelopes[x].transactions[y].amount;
+                        }else{
+                            calcAmount = calcAmount + bankAccounts[acId].envelopes[x].transactions[y].amount;
+                        }
+                    }
+                }
+            }else{
+                for(var x = 0; x < bankAccounts[acId].envelopes[envId].transactions.length; x++){
+                    if(bankAccounts[acId].envelopes[envId].transactions[x].type == "Spend"){
+                        calcAmount = calcAmount - bankAccounts[acId].envelopes[envId].transactions[x].amount;
+                    }else{
+                        calcAmount = calcAmount + bankAccounts[acId].envelopes[envId].transactions[x].amount;
+                    }
+                }
+            }
+            
+            return ("$" + calcAmount);
         };
 
         $scope.toggleHide = function(id){
@@ -267,36 +324,16 @@ multiBudgetApp.controller('budget', ['$scope',
             //console.log("localStorage - value: " + value);
             return window.localStorage.setItem(key, value);
         };
-
-        $scope.clearLocalStorage = function() {
-            var localStorage1 = JSON.parse(this.getLocalStorage('bankAccounts'));
-            if(localStorage1 !== null){
-                for(var clear1 = 0; clear1 < localStorage1.length; clear1++){
-                    var localStorage2 = JSON.parse(this.getLocalStorage('bankAccounts.'+ clear1));
-                    if(localStorage2 !== null){
-                        for(var clear2 = 0; clear2 < localStorage2.length; clear2++){
-                            //console.log('bankAccounts.'+ clear1 + '.' + clear2);
-                            window.localStorage.removeItem('bankAccounts.'+ clear1 + '.' + clear2);
-                        }
-                    }
-                    //console.log('bankAccounts.'+ clear1);
-                    window.localStorage.removeItem('bankAccounts.'+ clear1);
-                }
-                //console.log('bankAccounts');
-                window.localStorage.removeItem('bankAccounts');
-                location.reload();
-            }
-        };
-
-        $scope.fromStorage = function(storedData){
+        
+        $scope.getJson = function(storedData){
             //console.log(storedData);
             //this.testRegex(storedData);
             storedData = storedData.replace(regexPattern, "");
             //console.log(storedData);
             return JSON.parse(storedData);
         };
-
-        $scope.toStorage = function(storedData){
+        
+        $scope.getString = function(storedData){
             //console.log(storedData);
             storedData = JSON.stringify(storedData);
             //this.testRegex(storedData);
@@ -306,10 +343,169 @@ multiBudgetApp.controller('budget', ['$scope',
 
         };
 
+        $scope.clearLocalStorage = function() {
+            var localStorage1 = JSON.parse(this.getLocalStorage('bankAccounts'));
+            if(localStorage1 !== null){
+                window.localStorage.removeItem('bankAccounts');
+                location.reload();
+            }
+        };
+
         $scope.testRegex = function(storedData){
             var testArray = storedData.match(regexPattern);
             console.log(testArray);
         };
 
         $scope.date = new Date().toDateString();
+        
+        $scope.testJson = [{
+            "id": 0,
+            "title": "Savings",
+            "color": "primary",
+            "envelopes": [{
+                "id": 0,
+                "title": "Car Payment",
+                "color": "primary",
+                "transactions": [{
+                    "id":0,
+                    "disc":"Payroll",
+                    "amount":135,
+                    "type":"Earn",
+                    "date":"Thu July 30  2014",
+                    "display":"show"
+                },{
+                    "id":1,
+                    "disc":"Payroll",
+                    "amount":135,
+                    "type":"Earn",
+                    "date":"Thu Aug 15 2014",
+                    "display":"show"
+                },{
+                    "id":2,
+                    "disc":"Payment",
+                    "amount":250,
+                    "type":"Spend",
+                    "date":"Thu Aug 18 2014",
+                    "display":"show"
+                }],
+                "display":"show"
+            },{
+                "id": 1,
+                "title": "Gas",
+                "color": "info",
+                "transactions": [{
+                    "id":0,
+                    "disc":"Payroll",
+                    "amount":160,
+                    "type":"Earn",
+                    "date":"Thu July 30 2014",
+                    "display":"show"
+                },{
+                    "id":1,
+                    "disc":"Gas to Work",
+                    "amount":20,
+                    "type":"Spend",
+                    "date":"Thu Aug 14 2014",
+                    "display":"show"
+                },{
+                    "id":2,
+                    "disc":"Payroll",
+                    "amount":160,
+                    "type":"Earn",
+                    "date":"Thu Aug 30 2014",
+                    "display":"show"
+                }],
+                "display":"show"
+            },{
+                "id": 2,
+                "title": "Lunch",
+                "color": "primary",
+                "transactions": [{
+                    "id":0,
+                    "disc":"Payroll",
+                    "amount":50,
+                    "type":"Earn",
+                    "date":"Thu July 30 2014",
+                    "display":"show"
+                },{
+                    "id":1,
+                    "disc":"Wendey's",
+                    "amount":2.50,
+                    "type":"Spend",
+                    "date":"Thu Aug 14 2014",
+                    "display":"show"
+                },{
+                    "id":2,
+                    "disc":"Payroll",
+                    "amount":2.50,
+                    "type":"Earn",
+                    "date":"Thu Aug 30 2014",
+                    "display":"show"
+                }],
+                "display":"show"
+            },{
+                "id": 3,
+                "title": "Misc.",
+                "color": "info",
+                "transactions": [{
+                    "id":0,
+                    "disc":"Payroll",
+                    "amount":50,
+                    "type":"Earn",
+                    "date":"Thu July 30 2014",
+                    "display":"show"
+                },{
+                    "id":1,
+                    "disc":"Payroll",
+                    "amount":50,
+                    "type":"Earn",
+                    "date":"Thu Aug 30 2014",
+                    "display":"show"
+                },{
+                    "id":2,
+                    "disc":"Transfer",
+                    "amount":101,
+                    "type":"Spend",
+                    "date":"Thu Aug 14 2014",
+                    "display":"show"
+                }],
+                "display":"show"
+            }],
+            "display": "show",
+            "date": "xx/xx/xxxx"
+        },{
+            "id": 1,
+            "title": "Checking",
+            "color": "info",
+            "envelopes": [
+                {"id": 0, "title": "School", "color": "primary", "transactions":[], "display":"show" },
+                {"id": 1, "title": "New Computer", "color": "primary", "transactions":[], "display":"show" },
+                {"id": 2, "title": "Misc.", "color": "primary", "transactions":[], "display":"show" },
+                {"id": 3, "title": "Mud Truck", "color": "primary", "transactions":[], "display":"show" },
+                {"id": 4, "title": "Secret", "color": "primary", "transactions":[], "display":"show" }
+            ],
+            "display": "show",
+            "date": "xx/xx/xxxx"
+        }];
+        
+        if(typeof(Storage) !== "undefined") {
+            window.localStorage.setItem('bankAccounts', $scope.getString($scope.testJson));
+            // Code for localStorage/sessionStorage.
+            console.log("localStorage: " + window.localStorage.getItem('bankAccounts'));
+            var localBanks = window.localStorage.getItem('bankAccounts');
+            console.log("localBanks: " + JSON.parse(localBanks));
+            if(localBanks !== null){
+                localBanks = localBanks.replace(regexPattern, "");
+                bankAccounts = JSON.parse(localBanks);
+            }else{
+                bankAccounts = [];
+            }
+            //console.log("bankAccounts:");
+            //console.log(bankAccounts);
+            $scope.bankAccounts = bankAccounts;
+        } else {
+            // Sorry! No Web Storage support..
+            $('#storageAlert').removeClass('hide');
+        }        
+        
 }]);
