@@ -40,6 +40,7 @@
 /home/bpo/workspace/multiBudget/platforms/android/assets/www/cordova_plugins.js \
 /home/bpo/workspace/multiBudget/platforms/android/assets/www/css/index.css \
 /home/bpo/workspace/multiBudget/platforms/android/assets/www/img/logo.png \
+/home/bpo/workspace/multiBudget/platforms/android/assets/www/img/cb-tile.png \
 /home/bpo/workspace/multiBudget/platforms/android/assets/www/img/icon \
 /home/bpo/workspace/multiBudget/platforms/android/assets/www/img/icon/icon.png \
 /home/bpo/workspace/multiBudget/platforms/android/assets/www/img/icon/android \
