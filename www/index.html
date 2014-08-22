@@ -22,7 +22,27 @@
 
         <link href="css/index.css" rel="stylesheet">
 
+        <script type="text/javascript" charset="utf-8" src="cordova.js"></script>
         <script src="lib/angular.min.js"></script>
+        <script type="text/javascript" charset="utf-8">
+        function onLoad() {
+            document.addEventListener("deviceready", onDeviceReady, false);
+        }
+
+        // device APIs are available
+        //
+        function onDeviceReady() {
+            // Register the event listener
+            document.addEventListener("backbutton", onBackKeyDown, false);
+        }
+
+        // Handle the back button
+        //
+        function onBackKeyDown() {
+            console.log("Test");
+            angular.element('[ng-controller=budget]').scope().back();
+        }
+        </script>
         <script src="js/controllers.js"></script>
     </head>
 
@@ -66,6 +86,7 @@
                         <li class="dropdown">
                             <a class="dropdown-toggle" href="#" data-toggle="dropdown"><i class="glyphicon glyphicon-wrench"></i> <b>Settings</b></a>
                             <ul class="dropdown-menu">
+                                <li id="defaultsDropdown" class=""><a data-target="#default" role="button" data-toggle="modal"><i class="glyphicon glyphicon-pushpin"></i> <b>Defaults</b></a></li>
                                 <li id="aboutDropdown" class=""><a data-target="#about" role="button" data-toggle="modal"><i class="glyphicon glyphicon-info-sign"></i> <b>About</b></a></li>
                             </ul>
                         </li>
@@ -130,6 +151,44 @@
             
         </div> <!-- /container -->
 
+        <!-- default -->
+        <div class="modal fade" id="default" tabindex="-1" role="dialog" aria-labelledby="aboutModal" aria-hidden="true" style="margin-top: 51px;">
+            <div class="modal-dialog">
+                <div class="modal-content modal-inverse">
+                    <div class="modal-header modal-header-inverse">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="aboutLabel">Defaults</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div>
+                            <div class="tab pull-left">
+                                <h5 style="padding: 4px;">Amount of Accounts to show</h5>
+                            </div>
+                            <div class="tab pull-left">
+                                <input class="form-control" type="number" min="1" step="1" placeholder="0" name="inputAmount" ng-model="showAccounts" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div class="bar" style="clear:both;margin-bottom: 5px;"></div>
+                        <div>
+                            <div class="tab pull-left">
+                                <h5 style="padding: 4px;">Amount of Envelopes to show</h5>
+                            </div>
+                            <div class="tab pull-left">
+                                <input class="form-control" type="number" min="1" step="1" placeholder="0" name="inputAmount" ng-model="showEnvelopes" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div class="bar" style="clear:both;margin-bottom: 5px;"></div>
+                        <button type="button" class="btn btn-default pull-left" data-dismiss="modal" ng-click="loadFakeData()" style="width:48%;margin-right: 2%;margin-bottom: 1%;">Load Fake Data</button>
+                        <button type="button" class="btn btn-default pull-left" data-dismiss="modal" ng-click="clearLocalStorage()" style="width:48%;margin-left: 2%;margin-bottom: 1%;">Clear LocalStorage</button>
+                        <div class="bar" style="clear:both;margin-bottom: 5px;"></div>
+                    </div>
+                    <div class="modal-footer modal-footer-inverse">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="saveDefaults(showAccounts, showEnvelopes)">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- /default -->
+
         <!-- about -->
         <div class="modal fade" id="about" tabindex="-1" role="dialog" aria-labelledby="aboutModal" aria-hidden="true" style="margin-top: 51px;">
             <div class="modal-dialog">
@@ -140,10 +199,11 @@
                     </div>
                     <div class="modal-body">
                         Created By Christian Vespa
+                    </br>
+                        Test on and running on Razr M (tx907)
                     </div>
                     <div class="modal-footer modal-footer-inverse">
-                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="clearLocalStorage()">Clear LocalStorage</button>
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
                     </div>
                 </div>
             </div>
@@ -176,7 +236,7 @@
                         <!-- <span ng-bind="add.text"></span> -->
                     </div>
                     <div class="modal-footer modal-footer-inverse">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
                         <button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="add(add.text, add.color)">Add</button>
                     </div>
                 </div>
@@ -217,7 +277,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-inverse">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
                     </div>
                 </div>
             </div>
@@ -241,7 +301,7 @@
                         <!-- <span ng-bind="transaction.text"></span><span ng-bind="transaction.amount"></span><span ng-bind="date"></span> -->
                     </div>
                     <div class="modal-footer modal-footer-inverse">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
                         <button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="transaction(transaction.text, transaction.amount, transaction.transactionType, date)"><span ng-bind="transaction.transactionType"></span></button>
                     </div>
                 </div>
@@ -297,7 +357,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-inverse">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
                         <button type="button" class="btn btn-primary" ng-click="payRoll(payRoll.disc, payRoll.total)">Finish</button>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 var multiBudgetApp = angular.module('multiBudget', []);
 
 var bankAccounts = [];
+var settings = [];
 var activeContainer = "";
 var selectedAccountId = "";
 var selectedEnvelopeId = "";
@@ -9,8 +10,6 @@ var regexPattern = /,"\$\$\w+":"\w+"/g;
 
 multiBudgetApp.controller('budget', ['$scope',
     function ($scope) {
-        $scope.showAccounts = 5;
-        $scope.showEnvelopes = 3;
         
         $scope.activeContainer = function(){
             //console.log("activeContainer: " + activeContainer);
@@ -18,6 +17,7 @@ multiBudgetApp.controller('budget', ['$scope',
         };
         
         $scope.back = function() {
+            console.log("Back")
             if(activeContainer === "account"){
                 activeContainer = "";
                 $scope.selectedAccountText = ""
@@ -83,6 +83,7 @@ multiBudgetApp.controller('budget', ['$scope',
             //console.log("bankAccounts:");
             //console.log(bankAccounts);
             $scope.add.text = "";
+            this.collapse('#navbar-collapse');
         };
         
         $scope.add.color = "default";
@@ -107,6 +108,7 @@ multiBudgetApp.controller('budget', ['$scope',
                 //console.log(bankAccounts);
                 var dataToStore = this.getString(bankAccounts);
                 this.setLocalStorage('bankAccounts', dataToStore);
+                this.collapse('#navbar-collapse');
             }
             
         };
@@ -128,6 +130,7 @@ multiBudgetApp.controller('budget', ['$scope',
                 this.setLocalStorage('bankAccounts', dataToStore);
                 $scope.transaction.text = "";
                 $scope.transaction.amount = "";
+                this.collapse('#navbar-collapse');
             }
         };
         
@@ -138,7 +141,7 @@ multiBudgetApp.controller('budget', ['$scope',
         $scope.payRoll = function(disc, total){
             //console.log(disc);
             //console.log(total);
-            if(bankAccounts.length = 0){
+            if(bankAccounts.length == 0){
                 alert("You do not have any Accounts.");
                 $('#payroll').modal('toggle');
                 return;
@@ -146,11 +149,11 @@ multiBudgetApp.controller('budget', ['$scope',
             
             var anyEnvelope = bankAccounts.length;
             for(var x = 0; x < bankAccounts.length; x++){
-                if(bankAccounts[x].envelopes.length = 0){
+                if(bankAccounts[x].envelopes.length == 0){
                     anyEnvelope = anyEnvelope - 1;
                 }
             }
-            if(anyEnvelope = 0){
+            if(anyEnvelope == 0){
                 alert("You do not have any Envelopes.");
                 $('#payroll').modal('toggle');
                 return;
@@ -170,7 +173,12 @@ multiBudgetApp.controller('budget', ['$scope',
                 }
                 
                 for(var x = 0; x < bankAccounts.length; x++){
+                    console.log(x)
                     for(var y = 0; y < bankAccounts[x].envelopes.length; y++){
+                        console.log(y);
+                        if(bankAccounts[x].envelopes[y].pendAmount == ""){
+                            console.log(bankAccounts[x].envelopes[y].pendAmount)
+                        }
                         if(bankAccounts[x].envelopes[y].pendAmount != undefined){
                             bankAccounts[x].envelopes[y].transactions[bankAccounts[x].envelopes[y].transactions.length] = {
                                 "id": bankAccounts[x].envelopes[y].transactions.length,
@@ -184,6 +192,7 @@ multiBudgetApp.controller('budget', ['$scope',
                         }
                     }
                 }
+                console.log(bankAccounts)
                 var dataToStore = this.getString(bankAccounts);
                 this.setLocalStorage('bankAccounts', dataToStore);
                 $('#payroll').modal('toggle');
@@ -206,6 +215,9 @@ multiBudgetApp.controller('budget', ['$scope',
             $scope.payRollTotal.perc = newTotal;
             if (newTotal > 80){
                 $scope.payRollTotal.color = "warning"
+            }
+            if (newTotal == 100){
+                $scope.payRollTotal.color = "success"
             }
             if (newTotal > 100){
                 $scope.payRollTotal.color = "danger"
@@ -303,6 +315,27 @@ multiBudgetApp.controller('budget', ['$scope',
             
             return ("$" + calcAmount);
         };
+        
+        $scope.saveDefaults = function(accounts, envelopes){
+            settings = [{"showAccounts": accounts, "showEnvelopes": envelopes}];
+        
+            $scope.showAccounts = settings[0].showAccounts;
+            $scope.showEnvelopes = settings[0].showEnvelopes;
+            
+            var dataToStore = this.getString(settings);
+            this.setLocalStorage('bankAccounts.settings', dataToStore);
+            $('#default').modal('toggle');
+            $('.collapse').collapse();
+        };
+        
+        $scope.loadFakeData = function(){
+            bankAccounts = $scope.testJson;
+            $scope.bankAccounts = bankAccounts;
+        };
+        
+        $scope.collapse = function(id){
+            $(id).collapse('toggle');
+        }
 
         $scope.toggleHide = function(id){
             //console.log("toggleHide: " + id);
@@ -325,6 +358,12 @@ multiBudgetApp.controller('budget', ['$scope',
             return window.localStorage.setItem(key, value);
         };
         
+        $scope.removeLocalStorage = function(key){
+            //console.log("localStorage - key: " + key);
+            //console.log("localStorage - value: " + value);
+            return window.localStorage.removeItem(key);
+        };
+        
         $scope.getJson = function(storedData){
             //console.log(storedData);
             //this.testRegex(storedData);
@@ -340,15 +379,16 @@ multiBudgetApp.controller('budget', ['$scope',
             storedData = storedData.replace(regexPattern, "");
             //console.log(storedData);
             return storedData;
-
         };
+        
+        $scope.onBackKeyDown = function() {
+            
+    	},
 
         $scope.clearLocalStorage = function() {
-            var localStorage1 = JSON.parse(this.getLocalStorage('bankAccounts'));
-            if(localStorage1 !== null){
-                window.localStorage.removeItem('bankAccounts');
-                location.reload();
-            }
+            this.removeLocalStorage('bankAccounts');
+            bankAccounts = [];
+            $scope.bankAccounts = bankAccounts;
         };
 
         $scope.testRegex = function(storedData){
@@ -489,7 +529,7 @@ multiBudgetApp.controller('budget', ['$scope',
         }];
         
         if(typeof(Storage) !== "undefined") {
-            window.localStorage.setItem('bankAccounts', $scope.getString($scope.testJson));
+            //window.localStorage.setItem('bankAccounts', $scope.getString($scope.testJson));
             // Code for localStorage/sessionStorage.
             console.log("localStorage: " + window.localStorage.getItem('bankAccounts'));
             var localBanks = window.localStorage.getItem('bankAccounts');
@@ -500,8 +540,20 @@ multiBudgetApp.controller('budget', ['$scope',
             }else{
                 bankAccounts = [];
             }
+            console.log("localStorage: " + window.localStorage.getItem('bankAccounts.settings'));
+            var localSettings = window.localStorage.getItem('bankAccounts.settings');
+            console.log("localSettings: " + JSON.parse(localSettings));
+            if(localSettings !== null){
+                localSettings = localSettings.replace(regexPattern, "");
+                settings = JSON.parse(localSettings);
+            }else{
+                settings = [{"showAccounts": 5, "showEnvelopes": 3}];
+                console.log(settings[0])
+            }
             //console.log("bankAccounts:");
             //console.log(bankAccounts);
+            $scope.showAccounts = settings[0].showAccounts;
+            $scope.showEnvelopes = settings[0].showEnvelopes;
             $scope.bankAccounts = bankAccounts;
         } else {
             // Sorry! No Web Storage support..
