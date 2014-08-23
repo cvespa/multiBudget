@@ -1,0 +1,9 @@
+{
+    "lib": {
+        "www": {
+            "id": "com.github.cvespa.multiBudget",
+            "version": "3.5.0",
+            "uri": "https://github.com/cvespa/multiBudget"
+        }
+    }
+}

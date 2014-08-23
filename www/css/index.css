@@ -1,0 +1,113 @@
+body {
+    padding-top: 70px;
+    padding-bottom: 70px;
+    background-image: url("../img/cb-tile.png")
+}
+
+.modal-body {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.glyphicon {
+    color: white !important; 
+}
+
+.#selectAccount{
+    padding-bottom:125px;
+}
+
+.#selectEnvelope{
+    padding-bottom:125px;
+}
+
+.navbar-toggle {
+    border: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.panel-primary {
+    border-color: #428bca;
+    background-color: #428bca;
+}
+
+.panel-danger {
+    border-color: #ebccd1;
+    background-color: #ebccd1;
+}
+
+.list-group-item {
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.list-group-item-success {
+    color: #3c763d;
+    background-color: #dff0d8;
+}
+
+.list-group-item-warning {
+    color: #8a6d3b;
+    background-color: #fcf8e3;
+}
+
+.list-group-item-danger {
+    color: #a94442;
+    background-color: #f2dede;
+}
+
+.modal-contet{
+    backgound-color:transparent;
+}
+
+.modal-inverse{
+    background-image: -webkit-linear-gradient(top,#3c3c3c 0,#222 100%);
+    background-image: -o-linear-gradient(top,#3c3c3c 0,#222 100%);
+    background-image: -webkit-gradient(linear,left top,left bottom,from(#3c3c3c),to(#222));
+    background-image: linear-gradient(to bottom,#3c3c3c 0,#222 100%);
+    color: white !important;
+}
+
+.modal-header-inverse{
+    border-bottom: 1px solid rgba(83, 83, 83, 0.42) !important;
+}
+
+.modal-footer-inverse{
+    border-top: 1px solid rgba(83, 83, 83, 0.42) !important;
+}
+
+.form-control{
+    background-color: rgba(255, 255, 255, 0.49) !important;
+    color:white !important;
+    border: 1px solid #858585 !important;
+}
+
+.form-control::-webkit-input-placeholder{
+    color:white !important;
+}
+
+.accountTitle{
+    width:100%;
+    text-align:left;
+}
+
+.tab{
+    width:50%;
+}
+
+.btn-margin{
+    margin: 5px;
+}
+
+.input-margin{
+    margin: 5px;
+}
+
+.bar{
+    width:100%;
+    height:2px;
+    background-color:rgba(83, 83, 83, 0.42);
+}
+
+.spacer(
+    width:100%;
+    height:3px;
+)

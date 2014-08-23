@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html ng-app="multiBudget">
+    <head>
+        <meta charset="utf-8">
+        <title>multiBudget</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+        <meta name="description" content="">
+        <meta name="author" content="">
+
+        <!-- Le styles -->
+        <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+          body {
+            padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+          }
+        </style>
+        <link href="lib/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
+
+        <!-- Fav and touch icons -->
+        <link rel="shortcut icon" href="img/favicon.png">
+
+        <link href="css/index.css" rel="stylesheet">
+    </head>
+
+    <body ng-controller="budget" ng-switch="activeContainer()">
+        
+        <!-- Top navbar -->
+        <div class="navbar navbar-inverse navbar-fixed-top " role="navigation">
+            <div class="container">
+                <div class="navbar-header">
+                    <button class="glyphicon glyphicon-book navbar-toggle" data-target="#payroll" role="button" data-toggle="modal" ng-switch-default></button>
+                    <button id="back" class="glyphicon glyphicon-chevron-left navbar-toggle" ng-click="back()" ng-switch-when="account"></button>
+                    <button id="back" class="glyphicon glyphicon-chevron-left navbar-toggle" ng-click="back()" ng-switch-when="envelope"></button>
+                    <p class="navbar-brand">multiBudget
+                        <small ng-bind="selectedAccountText" ng-switch-when="account"></small> 
+                        <small ng-bind="selectedEnvelopeText" ng-switch-when="envelope"></small>
+                    </p>
+                </div>
+            </div>
+        </div> <!-- /Top navbar -->
+        
+        <!-- Bottom navbar -->
+        <div class="navbar navbar-inverse navbar-fixed-bottom" role="control">
+            <div class="container-fluid">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header">
+                    <button type="button" class="glyphicon glyphicon-th-list navbar-toggle" data-toggle="collapse" data-target="#navbar-collapse">
+                    </button>
+                    <p class="navbar-brand" href="#">Controls</p>
+                </div>
+
+                <div class="collapse navbar-collapse" id="navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li ng-switch-default><a data-target="#add" role="button" data-toggle="modal"><i class="glyphicon glyphicon-plus"></i> <b>Add</b></a></li>
+                        <li ng-switch-default><a data-target="#remove" role="button" data-toggle="modal"><i class="glyphicon glyphicon-remove"></i> <b>Remove</b></a></li>
+                        
+                        <li ng-switch-when="account"><a data-target="#add" role="button" data-toggle="modal"><i class="glyphicon glyphicon-plus"></i> <b>Add</b></a></li>
+                        <li ng-switch-when="account"><a data-target="#remove" role="button" data-toggle="modal"><i class="glyphicon glyphicon-remove"></i> <b>Remove</b></a></li>
+                        
+                        <li ng-switch-when="envelope"><a data-target="#transaction" role="button" data-toggle="modal" ng-click="transactionType(transaction.spend)"><i class="glyphicon glyphicon-minus-sign"></i> <b>Spend</b></a></li>
+                        <li ng-switch-when="envelope"><a data-target="#transaction" role="button" data-toggle="modal" ng-click="transactionType(transaction.earn)"><i class="glyphicon glyphicon-plus-sign"></i> <b>Earn</b></a></li>
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" href="#" data-toggle="dropdown"><i class="glyphicon glyphicon-wrench"></i> <b>Settings</b></a>
+                            <ul class="dropdown-menu">
+                                <li id="defaultsDropdown" class=""><a data-target="#default" role="button" data-toggle="modal"><i class="glyphicon glyphicon-pushpin"></i> <b>Defaults</b></a></li>
+                                <li id="aboutDropdown" class=""><a data-target="#about" role="button" data-toggle="modal"><i class="glyphicon glyphicon-info-sign"></i> <b>About</b></a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div><!-- /.container-fluid -->
+        </div> <!-- /Bottom navbar -->
+        
+        <!-- conatiner -->
+        <div class="container" >
+            <div id="storageAlert" class="alert alert-danger hide">
+                Sorry! No Web Storage support..
+            </div>
+            
+            <div id="mainView" ng-switch-default>
+                <div class="panel panel-{{panelColor(account.id)}} {{account.display}}" ng-repeat="account in bankAccounts|limitTo:showAccounts">
+                    <div class="panel-heading">
+                        <!--<h3 class="panel-title" ng-click="selectBankAccount(account.id)"><span class="label label-{{account.color}}">{{account.title}}</span></h3>-->
+                        <h3 class="panel-title" ng-click="selectBankAccount(account.id)">{{account.title}}</h3>
+                    </div>
+                    
+                    <!-- List group -->
+                    <ul class="list-group">
+                        <li class="list-group-item list-group-item-{{listColor(account.id, envelope.id)}} {{envelope.display}}" ng-repeat="envelope in account.envelopes|limitTo:showEnvelopes" ng-click="selectEnvelope(account.id, envelope.id)">
+                            <span class="badge" ng-bind="calcTotal(account.id, envelope.id)"></span>
+                            {{envelope.title}}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="selectAccount" ng-switch-when="account">
+                <div class="panel panel-{{panelColor(selectedAccount.id, envelope.id)}} {{envelope.display}}" ng-repeat="envelope in selectedAccount.envelopes" ng-click="selectEnvelope(selectedAccount.id, envelope.id)">
+                    <div class="panel-heading">
+                        <!--<h3 class="panel-title"><span class="label label-{{account.color}}">{{envelope.title}}</span></h3>-->
+                        <h3 class="panel-title">{{envelope.title}}</h3>
+                    </div>
+                    
+                    <!-- List group -->
+                    <ul class="list-group">
+                        <li class="list-group-item list-group-item-{{listColor(selectedAccount.id, envelope.id, transaction.id)}} {{transaction.display}}" ng-repeat="transaction in envelope.transactions" ng-switch="transaction.type">
+                            <span class="badge" ng-switch-when="Spend">- {{transaction.amount}}</span>
+                            <span class="badge" ng-switch-when="Earn">+ {{transaction.amount}}</span>
+                            <span class="badge" ng-switch-default>{{transaction.amount}}</span>
+                            {{transaction.disc}}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="selectEnvelope" ng-switch-when="envelope">
+                <!-- List group -->
+                <ul class="list-group">
+                    <li class="list-group-item list-group-item-{{listColor(selectedAccount.id, selectedEnvelope.id, transaction.id)}} {{transaction.display}}" ng-repeat="transaction in selectedEnvelope.transactions" ng-switch="transaction.type">
+                        <span class="badge" ng-switch-when="Spend">- {{transaction.amount}}</span>
+                        <span class="badge" ng-switch-when="Earn">+ {{transaction.amount}}</span>
+                        <span class="badge" ng-switch-default>{{transaction.amount}}</span>
+                        {{transaction.disc}}
+                    </li>
+                </ul>
+            </div>
+            
+        </div> <!-- /container -->
+
+        <!-- default -->
+        <div class="modal fade" id="default" tabindex="-1" role="dialog" aria-labelledby="aboutModal" aria-hidden="true" style="margin-top: 51px;">
+            <div class="modal-dialog">
+                <div class="modal-content modal-inverse">
+                    <div class="modal-header modal-header-inverse">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="aboutLabel">Defaults</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div>
+                            <div class="tab pull-left">
+                                <h5 style="padding: 4px;">Amount of Accounts to show</h5>
+                            </div>
+                            <div class="tab pull-left">
+                                <input class="form-control" type="number" min="1" step="1" placeholder="0" name="inputAmount" ng-model="showAccounts" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div class="bar" style="clear:both;margin-bottom: 5px;"></div>
+                        <div>
+                            <div class="tab pull-left">
+                                <h5 style="padding: 4px;">Amount of Envelopes to show</h5>
+                            </div>
+                            <div class="tab pull-left">
+                                <input class="form-control" type="number" min="1" step="1" placeholder="0" name="inputAmount" ng-model="showEnvelopes" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div class="bar" style="clear:both;margin-bottom: 5px;"></div>
+                        <button type="button" class="btn btn-default pull-left" data-dismiss="modal" ng-click="loadFakeData()" style="width:48%;margin-right: 2%;margin-bottom: 1%;">Load Fake Data</button>
+                        <button type="button" class="btn btn-default pull-left" data-dismiss="modal" ng-click="clearLocalStorage()" style="width:48%;margin-left: 2%;margin-bottom: 1%;">Clear LocalStorage</button>
+                        <div class="bar" style="clear:both;margin-bottom: 5px;"></div>
+                    </div>
+                    <div class="modal-footer modal-footer-inverse">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="saveDefaults(showAccounts, showEnvelopes)">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- /default -->
+
+        <!-- about -->
+        <div class="modal fade" id="about" tabindex="-1" role="dialog" aria-labelledby="aboutModal" aria-hidden="true" style="margin-top: 51px;">
+            <div class="modal-dialog">
+                <div class="modal-content modal-inverse">
+                    <div class="modal-header modal-header-inverse">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="aboutLabel">About</h4>
+                    </div>
+                    <div class="modal-body">
+                        Created By Christian Vespa
+                    </br>
+                        Test on and running on Razr M (tx907)
+                    </div>
+                    <div class="modal-footer modal-footer-inverse">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- /about -->
+        
+        <!-- add account/envelope -->
+        <div class="modal  fade" id="add" tabindex="-1" role="dialog" aria-labelledby="addModal" aria-hidden="true" style="margin-top: 51px;">
+            <div class="modal-dialog">
+                <div class="modal-content modal-inverse">
+                    <div class="modal-header modal-header-inverse">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="addLabel">Add</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div ng-switch-when="account">
+                            <input class="form-control" type="text" placeholder="Envelope Name" name="inputEnvelope" ng-model="add.text" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                        </div>
+                        <div ng-switch-default>
+                            <input class="form-control" type="text" placeholder="Account Name" name="inputAccount" ng-model="add.text" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                        </div>
+                    </br>
+                        <select ng-model="add.color" class="form-control">
+                            <option value="default">Gray</option>
+                            <option value="primary">Blue</option>
+                            <option value="success">Green</option>
+                            <option value="info">Light Blue</option>
+                            <option value="warning">Orange</option>
+                            <option value="danger">Red</option>
+                        </select>
+                        <!-- <span ng-bind="add.text"></span> -->
+                    </div>
+                    <div class="modal-footer modal-footer-inverse">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="add(add.text, add.color)">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- remove account/envelope -->
+        <div class="modal fade" id="remove" tabindex="-1" role="dialog" aria-labelledby="removeModal" aria-hidden="true" style="margin-top: 51px;">
+            <div class="modal-dialog">
+                <div class="modal-content modal-inverse">
+                    <div class="modal-header modal-header-inverse">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="removeLabel">Remove</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="{{account.display}}" ng-repeat-start="account in bankAccounts">
+                            <div class="accountTitle pull-left">
+                                <h4>
+                                    <span class="label label-{{account.color}}">
+                                        {{account.title}}
+                                        <button type="button" class="close" ng-click="remove(account.id)"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                                    </span>
+                                </h4>
+                                <div class="bar"></div>
+                            </div>
+                            <div class="{{envelope.display}}" ng-repeat-start="envelope in account.envelopes">
+                                <div class="tab pull-left">
+                                    <h5 style="padding: 4px;">{{envelope.title}}</h5>
+                                </div>
+                                <div class="tab pull-left">
+                                    <button type="button" class="btn-margin btn btn-default pull-right" ng-click="remove(account.id, envelope.id)">Remove</button>
+                                </div>
+                            </div>
+                            <div ng-repeat-end class="bar pull-left {{envelope.display}}">
+                            </div>
+                        </div>
+                        <div ng-repeat-end class="spacer pull-left" >
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-inverse">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- transaction -->
+        <div class="modal fade" id="transaction" tabindex="-1" role="dialog" aria-labelledby="transactionModal" aria-hidden="true" style="margin-top: 51px;">
+            <div class="modal-dialog">
+                <div class="modal-content modal-inverse">
+                    <div class="modal-header modal-header-inverse">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="transactionLabel"><span ng-bind="transaction.transactionType"></span></h4>
+                    </div>
+                    <div class="modal-body">
+                        <input class="form-control" type="text" placeholder="Description" name="inputDescription" ng-model="transaction.text" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                    </br>
+                        <input class="form-control" type="number" min="0.01" step="0.01" placeholder="0.00" name="inputAmount" ng-model="transaction.amount" ng-model-options="{ getterSetter: true }" style="width: 100%;">
+                    </br>
+                        <h5><span class="label label-default pull-right">Date: <span ng-bind="date"></span></span></h5>
+                    </br>
+                        <!-- <span ng-bind="transaction.text"></span><span ng-bind="transaction.amount"></span><span ng-bind="date"></span> -->
+                    </div>
+                    <div class="modal-footer modal-footer-inverse">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="transaction(transaction.text, transaction.amount, transaction.transactionType, date)"><span ng-bind="transaction.transactionType"></span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- payroll -->
+        <div class="modal fade" id="payroll" tabindex="-1" role="dialog" aria-labelledby="payRollModal" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content modal-inverse">
+                    <div class="modal-header modal-header-inverse" >
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="payRollLabel">Payroll</h4>
+                        <div style="width:100%;height:10%;">
+                            <div class="bar"></div>
+                            <div class="tab pull-left" style="padding: 5px;">
+                                <input class="form-control" type="text" placeholder="Paycheck" name="inputText" ng-model="payRoll.disc" ng-model-options="{ getterSetter: true }" style="text-align: left;">
+                            </div>
+                            <div class="tab pull-left" style="padding: 5px;">
+                                <input class="form-control" type="number" min="0.01" step="0.01" placeholder="0.00" name="inputAmount" ng-model="payRoll.total" ng-model-options="{ getterSetter: true }" style="text-align: right;">
+                            </div>
+                            <div class="bar" style="clear:both;margin-bottom: 5px;"></div>
+                            
+                            <div class="progress" style="height: 5px;margin-bottom:0px;clear:both;">
+                                <div class="progress-bar progress-bar-{{payRollTotal.color}}" role="progressbar" aria-valuenow="{{payRollTotal.perc}}" aria-valuemin="0" aria-valuemax="100" ng-style="{width: (payRollTotal.perc + '%') }">
+                                    <span class="sr-only">{{payRollTotal.perc}}% Complete</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <div class="{{account.display}}" ng-repeat-start="account in bankAccounts">
+                            <div class="accountTitle pull-left">
+                                <h4>
+                                    <span class="label label-{{account.color}}">
+                                        {{account.title}}
+                                    </span>
+                                </h4>
+                                <div class="bar"></div>
+                            </div>
+                            <div class="{{envelope.display}}" ng-repeat-start="envelope in account.envelopes">
+                                <div class="tab pull-left">
+                                    <h5 style="padding: 4px;">{{envelope.title}}</h5>
+                                </div>
+                                <div class="tab pull-left">
+                                    <input class="form-control input-margin" type="number" min="0.01" step="0.01" placeholder="0.00" name="inputAmount" ng-model="envelope.pendAmount" ng-change="payRollTotal(payRoll.total)" ng-model-options="{ getterSetter: true }" style="text-align: right;">
+                                </div>
+                            </div>
+                            <div ng-repeat-end class="bar pull-left {{envelope.display}}">
+                            </div>
+                        </div>
+                        <div ng-repeat-end class="spacer pull-left" >
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-inverse">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="collapse('#navbar-collapse')">Close</button>
+                        <button type="button" class="btn btn-primary" ng-click="payRoll(payRoll.disc, payRoll.total)">Finish</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+        <script src="lib/angular.min.js"></script>
+        <script src="lib/jquery-2.1.1.min.js"></script>
+        <script src="lib/bootstrap/js/bootstrap.min.js"></script>
+        <script src="js/controllers.js"></script>
+        <script type="text/javascript">
+            app.initialize();
+        </script>
+        
+    </body>
+</html>
